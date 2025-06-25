@@ -35,42 +35,27 @@ const StudentDashboard: React.FC = () => {
   const { user, profile, loading: authLoading, refreshAuth } = useAuth()
   const navigate = useNavigate()
 
+    // ...existing code...
   useEffect(() => {
-    console.log('📊 StudentDashboard useEffect - Auth loading:', authLoading, 'User:', user?.id, 'Profile role:', profile?.role)
-    
-    // Wait for auth to finish loading
-    if (authLoading) {
-      console.log('⏳ Auth still loading, waiting...')
-      return
-    }
-
-    // If no user is authenticated, redirect to auth page
+    if (authLoading) return
     if (!user) {
-      console.log('🔐 No user found, redirecting to auth')
       navigate('/auth')
       return
     }
-
-    // If user is not a student, redirect to explore page
     if (profile && profile.role !== 'student') {
-      console.log('👤 User is not a student, redirecting to explore')
       navigate('/explore')
       return
     }
-
-    // If we have a user but no profile yet, try to refresh auth
     if (user && !profile) {
-      console.log('⏳ User exists but no profile yet, refreshing auth...')
       refreshAuth()
       return
     }
-
-    // If user is authenticated and is a student, fetch reservations
     if (user && profile && profile.role === 'student') {
-      console.log('✅ Fetching reservations for student:', user.id)
       fetchReservations()
     }
+    // Only run when these change
   }, [user, profile, authLoading, navigate, refreshAuth])
+  // ...existing code...
 
   const fetchReservations = async () => {
     if (!user) {

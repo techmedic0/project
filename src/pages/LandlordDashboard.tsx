@@ -42,45 +42,31 @@ const LandlordDashboard: React.FC = () => {
     video_url: ''
   })
 
-  const { user, profile, loading: authLoading, refreshAuth } = useAuth()
+  
   const navigate = useNavigate()
 
+   // ...existing code...
+  const { user, profile, loading: authLoading, refreshAuth } = useAuth()
+  
   useEffect(() => {
-    console.log('🏠 LandlordDashboard useEffect - Auth loading:', authLoading, 'User:', user?.id, 'Profile role:', profile?.role)
-    
-    // Wait for auth to finish loading
-    if (authLoading) {
-      console.log('⏳ Auth still loading, waiting...')
-      return
-    }
-
-    // If no user is authenticated, redirect to auth page
+    if (authLoading) return
     if (!user) {
-      console.log('🔐 No user found, redirecting to auth')
       navigate('/auth')
       return
     }
-
-    // If user is not a landlord, redirect to explore page
     if (profile && profile.role !== 'landlord') {
-      console.log('👤 User is not a landlord, redirecting to explore')
       navigate('/explore')
       return
     }
-
-    // If we have a user but no profile yet, try to refresh auth
     if (user && !profile) {
-      console.log('⏳ User exists but no profile yet, refreshing auth...')
       refreshAuth()
       return
     }
-
-    // If user is authenticated and is a landlord, fetch properties
     if (user && profile && profile.role === 'landlord') {
-      console.log('✅ Fetching properties for landlord:', user.id)
       fetchProperties()
     }
   }, [user, profile, authLoading, navigate, refreshAuth])
+  // ...existing code...
 
   const fetchProperties = async () => {
     if (!user) {
@@ -206,20 +192,52 @@ const LandlordDashboard: React.FC = () => {
     setShowAddForm(true)
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  
+    const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
-
-    // In a real implementation, you would upload to Supabase Storage
-    // For demo purposes, we'll use placeholder URLs
-    const imageUrls = Array.from(files).map((_, index) => 
-      `https://images.pexels.com/photos/${106399 + index}/pexels-photo-${106399 + index}.jpeg`
-    )
-    
-    setFormData({
-      ...formData,
-      images: [...formData.images, ...imageUrls]
-    })
+  
+    const uploadedImageUrls: string[] = []
+    let uploadedVideoUrl: string | null = null
+  
+    for (const file of Array.from(files)) {
+      const ext = file.name.split('.').pop()
+      const isImage = file.type.startsWith('image/')
+      const isVideo = file.type.startsWith('video/')
+      if (!isImage && !isVideo) continue
+  
+      // Sanitize file name: remove spaces and special chars
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+      const folder = isImage ? 'images' : 'videos'
+      const filePath = `${folder}/${Date.now()}-${safeName}`
+  
+      const { error } = await supabase
+        .storage
+        .from('property-media')
+        .upload(filePath, file, { upsert: false })
+  
+      if (error) {
+        toast.error(`Failed to upload: ${file.name}`)
+        continue
+      }
+  
+      const { data } = supabase
+        .storage
+        .from('property-media')
+        .getPublicUrl(filePath)
+  
+      if (data?.publicUrl) {
+        if (isImage) uploadedImageUrls.push(data.publicUrl)
+        if (isVideo) uploadedVideoUrl = data.publicUrl
+      }
+    }
+  
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images, ...uploadedImageUrls],
+      video_url: uploadedVideoUrl || prev.video_url
+    }))
   }
 
   // Calculate dynamic reservation fee for display
@@ -599,21 +617,23 @@ const LandlordDashboard: React.FC = () => {
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                     <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-gray-600 mb-2">Upload property images</p>
+                                        
                     <input
                       type="file"
                       multiple
-                      accept="image/*"
-                      onChange={handleImageUpload}
+                      accept="image/*,video/*"
+                      onChange={handleMediaUpload}
                       className="hidden"
-                      id="image-upload"
+                      id="media-upload"
                     />
                     <label
-                      htmlFor="image-upload"
+                      htmlFor="media-upload"
                       className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors cursor-pointer"
                     >
-                      Choose Images
+                      Choose Images/Videos
                     </label>
                   </div>
+                                    
                   {formData.images.length > 0 && (
                     <div className="mt-4 grid grid-cols-3 gap-2">
                       {formData.images.map((image, index) => (
@@ -624,6 +644,14 @@ const LandlordDashboard: React.FC = () => {
                           className="w-full h-20 object-cover rounded-lg"
                         />
                       ))}
+                    </div>
+                  )}
+                  {formData.video_url && (
+                    <div className="mt-4">
+                      <video controls className="w-full h-32 rounded-lg">
+                        <source src={formData.video_url} />
+                        Your browser does not support the video tag.
+                      </video>
                     </div>
                   )}
                 </div>

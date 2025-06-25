@@ -34,7 +34,7 @@ const ExplorePage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false)
   const [unlockedProperties, setUnlockedProperties] = useState<Set<string>>(new Set())
   const [connectionStatus, setConnectionStatus] = useState<'testing' | 'connected' | 'failed'>('testing')
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
 
   const locations = ['LASU', 'UNILAG', 'OAU', 'UI', 'Covenant University', 'FUTA', 'UNIBEN']
   const tiers = [
@@ -44,8 +44,9 @@ const ExplorePage: React.FC = () => {
   ]
 
   useEffect(() => {
-    initializePage()
-  }, [user])
+    if (authLoading) return
+      initializePage()
+  }, [user, authLoading])
 
   const initializePage = async () => {
     try {

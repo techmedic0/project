@@ -80,7 +80,7 @@ const HomePage: React.FC = () => {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed"
             >
-              Connect with trusted landlords offering quality off-campus accommodation near Nigerian universities. 
+              Connect with trusted property managers offering quality off-campus accommodation near Nigerian universities. 
               <span className="font-semibold text-primary-600"> No more fake listings, no more exploitation.</span>
             </motion.p>
 
