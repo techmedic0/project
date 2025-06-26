@@ -111,3 +111,10 @@ button:active {
   transform: translateY(-4px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
+
+/* Add this to your global CSS (e.g., index.css or App.css) */
+.swiper-button-next,
+.swiper-button-prev {
+  color: #2563eb; /* Tailwind primary-600 */
+  z-index: 10;
+}

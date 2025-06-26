@@ -606,9 +606,7 @@ const LandlordDashboard: React.FC = () => {
                       <p className="text-sm text-blue-700">
                         <strong>Individual space rent:</strong> ₦{(formData.price / formData.total_rooms).toLocaleString()}
                       </p>
-                      <p className="text-sm text-blue-700">
-                        <strong>Auto-calculated reservation fee (1%):</strong> ₦{dynamicReservationFee.toLocaleString()}
-                      </p>
+                      
                     </div>
                   )}
                 </div>

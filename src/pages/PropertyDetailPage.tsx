@@ -1,3 +1,8 @@
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Navigation, Pagination } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/navigation'
+import 'swiper/css/pagination'
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MapPin, Users, Phone, Mail, Lock, CheckCircle, ArrowLeft, Calendar, Shield, MessageCircle } from 'lucide-react'
@@ -6,6 +11,7 @@ import { supabase, calculateReservationFee } from '../utils/supabase'
 import { useAuth } from '../context/AuthContext'
 import PaystackButton from '../components/PaystackButton'
 import toast from 'react-hot-toast'
+
 
 interface Property {
   id: string
@@ -42,7 +48,11 @@ const PropertyDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [isUnlocked, setIsUnlocked] = useState(false)
   const [paymentLoading, setPaymentLoading] = useState(false)
+
   const [error, setError] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalMedia, setModalMedia] = useState<string | null>(null)
+  const [modalType, setModalType] = useState<'image' | 'video' | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -206,7 +216,7 @@ const PropertyDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex overflow-x-hidden items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading property details...</p>
@@ -217,7 +227,7 @@ const PropertyDetailPage: React.FC = () => {
 
   if (error || !property) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 overflow-x-hidden flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             {error || 'Property not found'}
@@ -274,38 +284,84 @@ const PropertyDetailPage: React.FC = () => {
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Image Gallery */}
+       
+            
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="relative mb-8"
             >
-              <img
-                src={property.images[0] || 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg'}
-                alt={property.title}
-                className="w-full h-96 object-cover rounded-2xl"
-              />
-              
-              {/* Badges */}
-              <div className="absolute top-4 left-4 flex space-x-2">
-                <div className={`bg-gradient-to-r ${getTierColor(property.tier)} text-white px-3 py-1 rounded-full text-sm font-semibold`}>
-                  {getTierLabel(property.tier)}
-                </div>
-                {property.is_verified && (
-                  <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center space-x-1">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Verified</span>
-                  </div>
-                )}
+              <div className="w-full max-w-full rounded-2xl overflow-hidden aspect-[4/3] sm:aspect-[16/9] bg-gray-200">
+                <Swiper
+                  modules={[Navigation, Pagination]}
+                  navigation
+                  pagination={{ clickable: true }}
+                  spaceBetween={10}
+                  slidesPerView={1}
+                  className="w-full h-full"
+                  style={{ width: '100%', height: '100%' }}
+                >
+                  {(property.images && property.images.length > 0 ? property.images : [
+                    'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg'
+                  ]).map((img, idx) => (
+                    <SwiperSlide key={idx}>
+                      <img
+                        src={img}
+                        alt={`Property image ${idx + 1}`}
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => {
+                          setModalMedia(img)
+                          setModalType('image')
+                          setModalOpen(true)
+                        }}
+                      />
+                    </SwiperSlide>
+                  ))}
+                  {property.video_url && isUnlocked && (
+                    <SwiperSlide>
+                      <video
+                        controls
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => {
+                          setModalMedia(property.video_url!)
+                          setModalType('video')
+                          setModalOpen(true)
+                        }}
+                      >
+                        <source src={property.video_url!} />
+                      </video>
+                    </SwiperSlide>
+                  )}
+                </Swiper>
               </div>
-
-              {/* Availability */}
-              <div className="absolute bottom-4 right-4 bg-black bg-opacity-70 text-white px-3 py-2 rounded-lg">
-                {property.rooms_available} / {property.total_rooms} spaces available
-                {property.rooms_available === 0 && (
-                  <span className="block text-red-400 text-xs">Fully Booked</span>
-                )}
-              </div>
+              {/* ...rest of your code... */}
             </motion.div>
+            
+            {/* Fullscreen Modal for Media */}
+            {modalOpen && (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
+                onClick={() => setModalOpen(false)}
+                style={{ cursor: 'zoom-out' }}
+              >
+                {modalType === 'image' && (
+                  <img
+                    src={modalMedia!}
+                    alt="Full view"
+                    className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-lg"
+                  />
+                )}
+                {modalType === 'video' && (
+                  <video
+                    controls
+                    autoPlay
+                    className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-lg"
+                  >
+                    <source src={modalMedia!} />
+                  </video>
+                )}
+              </div>
+            )}
 
             {/* Property Info */}
             <motion.div
