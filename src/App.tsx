@@ -9,6 +9,7 @@ import PropertyDetailPage from './pages/PropertyDetailPage'
 import AuthPage from './pages/AuthPage'
 import LandlordDashboard from './pages/LandlordDashboard'
 import StudentDashboard from './pages/StudentDashboard'
+//import { Analytics } from "@vercel/analytics/next"
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; role?: 'student' | 'landlord' }> = ({ 
   children, 
