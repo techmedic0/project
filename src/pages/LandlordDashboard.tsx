@@ -202,7 +202,6 @@ const LandlordDashboard: React.FC = () => {
     let uploadedVideoUrl: string | null = null
   
     for (const file of Array.from(files)) {
-      const ext = file.name.split('.').pop()
       const isImage = file.type.startsWith('image/')
       const isVideo = file.type.startsWith('video/')
       if (!isImage && !isVideo) continue
