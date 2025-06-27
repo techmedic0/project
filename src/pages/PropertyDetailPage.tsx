@@ -1,4 +1,3 @@
-import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Pagination } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/navigation'
@@ -159,7 +158,20 @@ const PropertyDetailPage: React.FC = () => {
 
     setPaymentLoading(true)
     try {
-      console.log('💳 Processing payment success for reference:', reference)
+    // Check for existing reservation
+    const { data: existing } = await supabase
+      .from('reservations')
+      .select('id')
+      .eq('student_id', user.id)
+      .eq('property_id', property.id)
+      .maybeSingle();
+
+    if (existing) {
+      toast('You have already unlocked this property.');
+      setIsUnlocked(true);
+      setPaymentLoading(false);
+      return;
+    }
       
       // Create reservation record
       const { error: reservationError } = await supabase
@@ -195,6 +207,17 @@ const PropertyDetailPage: React.FC = () => {
       toast.success('Property unlocked! You can now view full details and contact the landlord.')
       
       // Refetch property data to get updated info
+      await supabase.rpc('decrement_rooms', { property_id: property.id })
+      const { data: fresh, error: fetchError } = await supabase
+          .from('properties')
+          .select('rooms_available')
+          .eq('id', property.id)
+          .single()
+        const newRooms = Math.max(0, (fresh?.rooms_available ?? property.rooms_available) - 1)
+        await supabase
+          .from('properties')
+          .update({ rooms_available: newRooms })
+          .eq('id', property.id)
       await fetchProperty()
     } catch (error) {
       console.error('❌ Error processing payment:', error)
@@ -291,56 +314,44 @@ const PropertyDetailPage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               className="relative mb-8"
             >
-              <div className="w-full max-w-full rounded-2xl overflow-hidden aspect-[4/3] sm:aspect-[16/9] bg-gray-200">
-                <Swiper
-                  modules={[Navigation, Pagination]}
-                  navigation
-                  pagination={{ clickable: true }}
-                  spaceBetween={10}
-                  slidesPerView={1}
-                  className="w-full h-full"
-                  style={{ width: '100%', height: '100%' }}
-                >
+              <div className="w-full rounded-2xl overflow-hidden bg-gray-200">
+                <div className="flex flex-col gap-4">
                   {(property.images && property.images.length > 0 ? property.images : [
                     'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg'
                   ]).map((img, idx) => (
-                    <SwiperSlide key={idx}>
-                      <img
-                        src={img}
-                        alt={`Property image ${idx + 1}`}
-                        className="w-full h-full object-cover cursor-pointer"
-                        onClick={() => {
-                          setModalMedia(img)
-                          setModalType('image')
-                          setModalOpen(true)
-                        }}
-                      />
-                    </SwiperSlide>
+                    <img
+                      key={idx}
+                      src={img}
+                      alt={`Property image ${idx + 1}`}
+                      className="w-full max-h-72 sm:max-h-96 object-cover rounded-2xl cursor-pointer"
+                      onClick={() => {
+                        setModalMedia(img)
+                        setModalType('image')
+                        setModalOpen(true)
+                      }}
+                    />
                   ))}
                   {property.video_url && isUnlocked && (
-                    <SwiperSlide>
-                      <video
-                        controls
-                        className="w-full h-full object-cover cursor-pointer"
-                        onClick={() => {
-                          setModalMedia(property.video_url!)
-                          setModalType('video')
-                          setModalOpen(true)
-                        }}
-                      >
-                        <source src={property.video_url!} />
-                      </video>
-                    </SwiperSlide>
+                    <video
+                      controls
+                      className="w-full max-h-72 sm:max-h-96 object-cover rounded-2xl cursor-pointer"
+                      onClick={() => {
+                        setModalMedia(property.video_url!)
+                        setModalType('video')
+                        setModalOpen(true)
+                      }}
+                    >
+                      <source src={property.video_url!} />
+                    </video>
                   )}
-                </Swiper>
+                </div>
               </div>
-              {/* ...rest of your code... */}
             </motion.div>
             
             {/* Fullscreen Modal for Media */}
             {modalOpen && (
               <div
-                className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
+                className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-2"
                 onClick={() => setModalOpen(false)}
                 style={{ cursor: 'zoom-out' }}
               >
@@ -348,14 +359,14 @@ const PropertyDetailPage: React.FC = () => {
                   <img
                     src={modalMedia!}
                     alt="Full view"
-                    className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-lg"
+                    className="max-h-[90vh] max-w-[96vw] w-auto h-auto rounded-lg shadow-lg"
                   />
                 )}
                 {modalType === 'video' && (
                   <video
                     controls
                     autoPlay
-                    className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-lg"
+                    className="max-h-[90vh] max-w-[96vw] w-auto h-auto rounded-lg shadow-lg"
                   >
                     <source src={modalMedia!} />
                   </video>
@@ -509,6 +520,7 @@ const PropertyDetailPage: React.FC = () => {
                     email={user.email || ''}
                     amount={dynamicReservationFee}
                     onSuccess={handlePaymentSuccess}
+                    onClose={() => setPaymentLoading(false)}
                     disabled={paymentLoading}
                     className="w-full bg-gradient-to-r from-primary-500 to-secondary-500 text-white py-4 rounded-lg font-semibold hover:from-primary-600 hover:to-secondary-600 transition-all duration-300 disabled:opacity-50"
                   >
