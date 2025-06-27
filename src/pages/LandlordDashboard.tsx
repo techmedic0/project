@@ -240,9 +240,7 @@ const LandlordDashboard: React.FC = () => {
   }
 
   // Calculate dynamic reservation fee for display
-  const dynamicReservationFee = formData.price > 0 && formData.total_rooms > 0 
-    ? calculateReservationFee(formData.price, formData.total_rooms)
-    : 0
+
 
   // Show loading state while auth is loading
   if (authLoading) {

@@ -1,4 +1,3 @@
-import { Navigation, Pagination } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
@@ -153,7 +152,7 @@ const PropertyDetailPage: React.FC = () => {
     }
   }
 
-  const handlePaymentSuccess = async (reference: string) => {
+  const handlePaymentSuccess = async () => {
     if (!user || !property) return
 
     setPaymentLoading(true)
@@ -208,7 +207,7 @@ const PropertyDetailPage: React.FC = () => {
       
       // Refetch property data to get updated info
       await supabase.rpc('decrement_rooms', { property_id: property.id })
-      const { data: fresh, error: fetchError } = await supabase
+      const { data: fresh } = await supabase
           .from('properties')
           .select('rooms_available')
           .eq('id', property.id)
@@ -269,7 +268,7 @@ const PropertyDetailPage: React.FC = () => {
     )
   }
 
-  const getTierColor = (tier: string) => {
+  /* const getTierColor = (tier: string) => {
     switch (tier) {
       case 'premium': return 'from-yellow-400 to-orange-500'
       case 'mid': return 'from-blue-400 to-purple-500'
@@ -283,7 +282,7 @@ const PropertyDetailPage: React.FC = () => {
       case 'mid': return 'Standard'
       default: return 'Budget'
     }
-  }
+  } */
 
   // Calculate dynamic reservation fee
   const dynamicReservationFee = calculateReservationFee(property.price, property.total_rooms)
