@@ -152,27 +152,28 @@ const PropertyDetailPage: React.FC = () => {
     }
   }
 
+    // ...existing code...
   const handlePaymentSuccess = async () => {
     if (!user || !property) return
-
+  
     setPaymentLoading(true)
     try {
-    // Check for existing reservation
-    const { data: existing } = await supabase
-      .from('reservations')
-      .select('id')
-      .eq('student_id', user.id)
-      .eq('property_id', property.id)
-      .maybeSingle();
-
-    if (existing) {
-      toast('You have already unlocked this property.');
-      setIsUnlocked(true);
-      setPaymentLoading(false);
-      return;
-    }
+      // Check for existing reservation
+      const { data: existing } = await supabase
+        .from('reservations')
+        .select('id')
+        .eq('student_id', user.id)
+        .eq('property_id', property.id)
+        .maybeSingle();
+  
+      if (existing) {
+        toast('You have already unlocked this property.');
+        setIsUnlocked(true);
+        setPaymentLoading(false);
+        return;
+      }
       
-      // Create reservation record
+      // Create reservation record (trigger will handle decrement)
       const { error: reservationError } = await supabase
         .from('reservations')
         .insert({
@@ -181,42 +182,17 @@ const PropertyDetailPage: React.FC = () => {
           payment_status: 'paid',
           unlock_granted: true
         })
-
+  
       if (reservationError) {
         console.error('❌ Reservation creation error:', reservationError)
         throw reservationError
       }
-
-      // Reduce available rooms by 1
-      const { error: updateError } = await supabase
-        .from('properties')
-        .update({ 
-          rooms_available: Math.max(0, property.rooms_available - 1)
-        })
-        .eq('id', property.id)
-
-      if (updateError) {
-        console.error('❌ Room update error:', updateError)
-        // Don't throw here as the reservation was already created
-        console.log('⚠️ Room count update failed but reservation was successful')
-      }
-
+  
       console.log('✅ Reservation created successfully')
       setIsUnlocked(true)
       toast.success('Property unlocked! You can now view full details and contact the landlord.')
-      
+  
       // Refetch property data to get updated info
-      await supabase.rpc('decrement_rooms', { property_id: property.id })
-      const { data: fresh } = await supabase
-          .from('properties')
-          .select('rooms_available')
-          .eq('id', property.id)
-          .single()
-        const newRooms = Math.max(0, (fresh?.rooms_available ?? property.rooms_available) - 1)
-        await supabase
-          .from('properties')
-          .update({ rooms_available: newRooms })
-          .eq('id', property.id)
       await fetchProperty()
     } catch (error) {
       console.error('❌ Error processing payment:', error)
@@ -225,6 +201,7 @@ const PropertyDetailPage: React.FC = () => {
       setPaymentLoading(false)
     }
   }
+  // ...existing code...
 
   const generateWhatsAppLink = () => {
     if (!landlord?.phone || !property) return '#'
