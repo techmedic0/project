@@ -8,6 +8,8 @@ import { fetchProperties, handleDeleteProperty, handleMediaUpload, handleSubmitP
 import PropertyForm from '../components/PropertyForm'
 import PropertyList from '../components/PropertyList'
 import StatsGrid from '../components/StatsGrid'
+import LandlordVerification from '../components/LandlordVerification'
+import MultiStepPropertyForm from '../components/MultiStepPropertyForm'
 import { Property } from '../types/global'
 
 const LandlordDashboard: React.FC = () => {
@@ -38,6 +40,18 @@ const LandlordDashboard: React.FC = () => {
     }
   }, [user, profile, authLoading, navigate, refreshAuth])
 
+  const refreshProperties = () => fetchProperties(user.id, setProperties, setLoading)
+
+  const handleAdd = () => {
+    setEditingProperty(null)
+    setShowAddForm(true)
+  }
+
+  const handleEdit = (property: Property) => {
+    setEditingProperty(property)
+    setShowAddForm(true)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     await handleSubmitProperty({
       e,
@@ -60,21 +74,30 @@ const LandlordDashboard: React.FC = () => {
     })
   }
 
-  const startEdit = (property: Property) => {
-    setFormData({
-      title: property.title,
-      description: property.description,
-      location: property.location,
-      detailed_location: property.detailed_location,
-      rooms_available: property.rooms_available,
-      total_rooms: property.total_rooms,
-      price: property.price,
-      tier: property.tier,
-      images: property.images,
-      video_url: property.video_url || ''
-    })
-    setEditingProperty(property)
-    setShowAddForm(true)
+  // Show verification before property upload
+  if (showAddForm && profile && !profile.is_identity_verified) {
+    return (
+      <LandlordVerification
+        userId={user.id}
+        onVerified={() => {
+          toast.success('Verification submitted! We will review and notify you soon.')
+          setShowAddForm(false)
+        }}
+      />
+    )
+  }
+
+  // Show multi-step property form if verified
+  if (showAddForm && profile && profile.is_identity_verified) {
+    return (
+      <MultiStepPropertyForm
+        userId={user.id}
+        onSuccess={() => {
+          toast.success('Property submitted for review!')
+          setShowAddForm(false)
+        }}
+      />
+    )
   }
 
   if (authLoading) {
@@ -151,24 +174,14 @@ const LandlordDashboard: React.FC = () => {
         {/* Properties List */}
         <PropertyList
           properties={properties}
-          startEdit={startEdit}
+          startEdit={handleEdit}
           handleDelete={handleDelete}
         />
 
-        {/* Add/Edit Property Modal */}
         {showAddForm && (
-          <PropertyForm
-            formData={formData}
-            setFormData={setFormData}
-            handleSubmit={handleSubmit}
-            handleMediaUpload={e => handleMediaUpload(e, setFormData)}
-            editingProperty={editingProperty}
-            setShowAddForm={setShowAddForm}
-            resetForm={() => {
-              setFormData(resetFormData())
-              setShowAddForm(false)
-              setEditingProperty(null)
-            }}
+          <MultiStepPropertyForm
+            userId={user.id}
+            onSuccess={() => setShowAddForm(false)}
           />
         )}
       </div>
