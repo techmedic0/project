@@ -13,8 +13,28 @@ declare global {
       }) => {
         openIframe: () => void;
       };
+     }
     };
-  }
+
+   interface Property {
+      id: string
+      title: string
+      description: string
+      location: string
+      detailed_location: string
+      rooms_available: number
+      total_rooms: number
+      price: number
+      tier: 'low' | 'mid' | 'premium'
+      reservation_fee: number
+      is_verified: boolean
+      images: string[]
+      video_url: string | null
+      landlord_id: string
+      created_at: string
+    }
+
+ 
 
   // Vite environment variables
   interface ImportMetaEnv {
@@ -28,4 +48,4 @@ declare global {
   }
 }
 
-export {};
+export { Property, Window, ImportMetaEnv, ImportMeta };
